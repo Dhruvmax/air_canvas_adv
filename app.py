@@ -31,6 +31,7 @@ except Exception as e:
     # Check if mediapipe is partially loaded
     try:
         import mediapipe as mp
+        st.write(f"**Mediapipe version:** {getattr(mp, '__version__', 'unknown')}")
         st.write(f"**Mediapipe file path:** {mp.__file__}")
         import os
         mp_dir = os.path.dirname(mp.__file__)
