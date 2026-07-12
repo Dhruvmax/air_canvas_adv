@@ -12,7 +12,23 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import streamlit.elements.image as _st_img_module
 if not hasattr(_st_img_module, 'image_to_url'):
     from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
-    _st_img_module.image_to_url = _image_to_url
+    from collections import namedtuple
+    
+    _LayoutConfig = namedtuple("LayoutConfig", ["width"])
+    
+    def compat_image_to_url(image, width, clamp, channels, output_format, image_id):
+        # Convert legacy width parameter to the LayoutConfig object expected by modern Streamlit
+        config = _LayoutConfig(width=width)
+        return _image_to_url(
+            image=image,
+            layout_config=config,
+            clamp=clamp,
+            channels=channels,
+            output_format=output_format,
+            image_id=image_id
+        )
+        
+    _st_img_module.image_to_url = compat_image_to_url
 
 from streamlit_drawable_canvas import st_canvas
 from streamlit_image_coordinates import streamlit_image_coordinates
