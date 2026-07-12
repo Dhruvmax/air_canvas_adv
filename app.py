@@ -181,7 +181,7 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 🖱️ Drawing Mode")
-    mode = st.radio("", list(MODE_INFO.keys()), key="mode_radio")
+    mode = st.radio("Drawing Mode", list(MODE_INFO.keys()), key="mode_radio", label_visibility="collapsed")
     state.mode = mode
     st.markdown(f'<div class="info-box">{MODE_INFO[mode]}</div>', unsafe_allow_html=True)
 
@@ -196,7 +196,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### ✏️ Brush Size")
-    state.brush_size = st.slider("", 2, 25, 5, key="brush_sl")
+    state.brush_size = st.slider("Brush Size", 2, 25, 5, key="brush_sl", label_visibility="collapsed")
 
     st.markdown("---")
     eraser = st.toggle("🧹 Eraser Mode", key="eraser_tog")
@@ -244,7 +244,7 @@ with col_canvas:
     canvas_placeholder = st.empty()
     canvas_img = state.get_canvas()
     pil_canvas = Image.fromarray(cv2.cvtColor(canvas_img, cv2.COLOR_BGR2RGB))
-    canvas_placeholder.image(pil_canvas, use_container_width=True)
+    canvas_placeholder.image(pil_canvas, use_container_width=True)  # noqa: deprecated arg kept for older streamlit compat
 
 # Instructions
 st.markdown("---")
