@@ -7,11 +7,21 @@ import os
 import pyaudio
 from vosk import Model, KaldiRecognizer
 
-# Initialize MediaPipe
+# Initialize MediaPipe with more robust settings
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, refine_landmarks=True)
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=False,
+    max_num_faces=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
+hands = mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=1,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.5
+)
 mp_draw = mp.solutions.drawing_utils
 
 # Initialize webcam
@@ -181,12 +191,16 @@ try:
         x, y = -1, -1
         should_draw = False  # Flag for pen mode drawing
         if mode == 'eye_tracking':
-            results = face_mesh.process(frame_rgb)
-            if results.multi_face_landmarks:
-                for face_landmarks in results.multi_face_landmarks:
-                    right_eye_outer = face_landmarks.landmark[133]
-                    x = int(right_eye_outer.x * frame.shape[1])
-                    y = int(right_eye_outer.y * frame.shape[0])
+            try:
+                results = face_mesh.process(frame_rgb)
+                if results and results.multi_face_landmarks:
+                    for face_landmarks in results.multi_face_landmarks:
+                        right_eye_outer = face_landmarks.landmark[133]
+                        x = int(right_eye_outer.x * frame.shape[1])
+                        y = int(right_eye_outer.y * frame.shape[0])
+            except Exception as e:
+                print(f"Face mesh processing error: {str(e)}")
+                x, y = -1, -1
         elif mode == 'hand_gesture':
             results = hands.process(frame_rgb)
             if results.multi_hand_landmarks:
