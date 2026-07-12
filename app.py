@@ -2,6 +2,8 @@ import streamlit as st
 import cv2
 import numpy as np
 import mediapipe as mp
+# Explicitly import solutions to force any hidden C++ ImportError to surface
+import mediapipe.python.solutions as mp_solutions
 import av
 import threading
 from PIL import Image
