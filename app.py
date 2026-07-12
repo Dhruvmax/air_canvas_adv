@@ -240,10 +240,14 @@ with col_cam:
 
 with col_canvas:
     st.markdown("#### 🖼️ Canvas Preview")
-    canvas_placeholder = st.empty()
-    canvas_img = state.get_canvas()
-    pil_canvas = Image.fromarray(cv2.cvtColor(canvas_img, cv2.COLOR_BGR2RGB))
-    canvas_placeholder.image(pil_canvas, width="stretch" if hasattr(st, '_legacy_api') else None, use_container_width=True)
+
+    @st.fragment(run_every=0.5)
+    def live_canvas_preview():
+        _img = state.get_canvas()
+        _pil = Image.fromarray(cv2.cvtColor(_img, cv2.COLOR_BGR2RGB))
+        st.image(_pil, use_container_width=True)
+
+    live_canvas_preview()
 
 # Instructions
 st.markdown("---")
