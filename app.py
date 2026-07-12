@@ -27,8 +27,18 @@ except Exception as e:
     st.error("### 🔍 Environment Diagnostic Error")
     st.write("The application failed to load system dependencies. Here are the details:")
     st.info(f"**Python Version:** {sys.version}")
+    
+    # Check if mediapipe is partially loaded
+    try:
+        import mediapipe as mp
+        st.write(f"**Mediapipe file path:** {mp.__file__}")
+        import os
+        mp_dir = os.path.dirname(mp.__file__)
+        st.write(f"**Mediapipe contents:** {os.listdir(mp_dir)}")
+    except Exception as mp_err:
+        st.write(f"**Mediapipe import error:** {mp_err}")
+
     st.code(traceback.format_exc(), language="python")
-    st.warning("👉 If Python Version is `3.14.x`, please delete this app and redeploy it specifying Python `3.11` in **Advanced Settings**.")
     st.stop()
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
