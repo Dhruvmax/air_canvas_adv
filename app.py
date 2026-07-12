@@ -203,16 +203,15 @@ with st.sidebar:
     state.eraser = eraser
 
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🗑️ Clear"):
-            state.clear()
-    with col2:
-        canvas_img = state.get_canvas()
-        pil_img = Image.fromarray(cv2.cvtColor(canvas_img, cv2.COLOR_BGR2RGB))
-        buf = io.BytesIO()
-        pil_img.save(buf, format="PNG")
-        st.download_button("💾 Save", buf.getvalue(), "canvas.png", "image/png")
+    if st.button("🗑️ Clear"):
+        state.clear()
+
+    # Build download bytes once and cache to avoid server disconnect on click
+    _canvas_snap = state.get_canvas()
+    _pil_snap = Image.fromarray(cv2.cvtColor(_canvas_snap, cv2.COLOR_BGR2RGB))
+    _buf = io.BytesIO()
+    _pil_snap.save(_buf, format="PNG")
+    st.download_button("💾 Save Canvas", _buf.getvalue(), "canvas.png", "image/png", use_container_width=True)
 
     st.markdown("---")
     st.markdown('<p style="font-size:0.75rem;opacity:0.5;text-align:center;">Air Canvas Pro • Streamlit Edition</p>',
@@ -244,7 +243,7 @@ with col_canvas:
     canvas_placeholder = st.empty()
     canvas_img = state.get_canvas()
     pil_canvas = Image.fromarray(cv2.cvtColor(canvas_img, cv2.COLOR_BGR2RGB))
-    canvas_placeholder.image(pil_canvas, use_container_width=True)  # noqa: deprecated arg kept for older streamlit compat
+    canvas_placeholder.image(pil_canvas, width="stretch" if hasattr(st, '_legacy_api') else None, use_container_width=True)
 
 # Instructions
 st.markdown("---")
