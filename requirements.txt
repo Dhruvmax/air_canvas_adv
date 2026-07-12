@@ -1,8 +1,8 @@
 streamlit>=1.32.0,<2
 streamlit-webrtc>=0.47.0
-mediapipe>=0.10.30
+mediapipe==0.10.14
 opencv-python-headless>=4.8.0,<5
-numpy>=1.24.0
+numpy>=1.24.0,<2
 av>=11.0.0
 Pillow>=10.0.0
 streamlit-drawable-canvas>=0.9.3

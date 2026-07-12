@@ -1,46 +1,21 @@
 import streamlit as st
-import sys
-import traceback
+import cv2
+import numpy as np
+import mediapipe as mp
+import av
+import threading
+from PIL import Image
+import io
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-# Diagnostic check for imports
-try:
-    import cv2
-    import numpy as np
-    import mediapipe as mp
-    from mediapipe.python import _framework_bindings
-    import av
-    import threading
-    from PIL import Image
-    import io
-    from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+# ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
+import streamlit.elements.image as _st_img_module
+if not hasattr(_st_img_module, 'image_to_url'):
+    from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
+    _st_img_module.image_to_url = _image_to_url
 
-    # ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
-    import streamlit.elements.image as _st_img_module
-    if not hasattr(_st_img_module, 'image_to_url'):
-        from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
-        _st_img_module.image_to_url = _image_to_url
-
-    from streamlit_drawable_canvas import st_canvas
-    from streamlit_image_coordinates import streamlit_image_coordinates
-
-except Exception as e:
-    st.error("### 🔍 Environment Diagnostic Error")
-    st.write("The application failed to load system dependencies. Here are the details:")
-    st.info(f"**Python Version:** {sys.version}")
-    
-    # Check if mediapipe is partially loaded
-    try:
-        import mediapipe as mp
-        st.write(f"**Mediapipe version:** {getattr(mp, '__version__', 'unknown')}")
-        st.write(f"**Mediapipe file path:** {mp.__file__}")
-        import os
-        mp_dir = os.path.dirname(mp.__file__)
-        st.write(f"**Mediapipe contents:** {os.listdir(mp_dir)}")
-    except Exception as mp_err:
-        st.write(f"**Mediapipe import error:** {mp_err}")
-
-    st.code(traceback.format_exc(), language="python")
-    st.stop()
+from streamlit_drawable_canvas import st_canvas
+from streamlit_image_coordinates import streamlit_image_coordinates
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
 
