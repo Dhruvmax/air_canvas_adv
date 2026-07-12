@@ -7,7 +7,7 @@ try:
     import cv2
     import numpy as np
     import mediapipe as mp
-    import mediapipe.python.solutions as mp_solutions
+    from mediapipe.python import _framework_bindings
     import av
     import threading
     from PIL import Image
