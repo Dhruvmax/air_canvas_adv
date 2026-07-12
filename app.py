@@ -7,6 +7,7 @@ import threading
 from PIL import Image
 import io
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+from streamlit_drawable_canvas import st_canvas
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
 
@@ -62,7 +63,14 @@ MODE_INFO = {
     "Hand Gesture": "✋ Raise your index finger to draw. Move it around the frame.",
     "Eye Tracking":  "👁️ Your right eye position controls the cursor.",
     "Pen Mode":      "✏️ Pinch thumb & index finger together to draw. Release to stop.",
+    "🖱️ Mouse":     "Hold and drag the mouse on the canvas panel to draw freely.",
+    "📝 Text":       "Type text in the sidebar, set position, then click Add Text.",
 }
+
+def bgr_to_hex(bgr):
+    """Convert OpenCV BGR tuple to CSS hex color string."""
+    b, g, r = bgr
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 class AppState:
@@ -202,6 +210,25 @@ with st.sidebar:
     eraser = st.toggle("🧹 Eraser Mode", key="eraser_tog")
     state.eraser = eraser
 
+    # ── Text Mode Controls ────────────────────────────────────────────────
+    if mode == "📝 Text":
+        st.markdown("---")
+        st.markdown("### 📝 Text Options")
+        txt_input   = st.text_input("Text to add", value="Hello!", key="txt_input")
+        txt_x       = st.slider("X position", 0, 620, 50,  key="txt_x")
+        txt_y       = st.slider("Y position", 20, 470, 240, key="txt_y")
+        txt_size    = st.slider("Font size",  0.5, 3.0, 1.0, step=0.1, key="txt_size")
+        txt_thick   = st.slider("Thickness", 1, 6, 2, key="txt_thick")
+        if st.button("✍️ Add Text to Canvas", use_container_width=True):
+            with state.lock:
+                cv2.putText(
+                    state.canvas, txt_input,
+                    (txt_x, txt_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    txt_size, state.color, txt_thick, cv2.LINE_AA
+                )
+            st.success(f"Added: '{txt_input}'")
+
     st.markdown("---")
     if st.button("🗑️ Clear"):
         state.clear()
@@ -239,15 +266,54 @@ with col_cam:
     )
 
 with col_canvas:
-    st.markdown("#### 🖼️ Canvas Preview")
+    if mode == "🖱️ Mouse":
+        st.markdown("#### 🖱️ Mouse Drawing")
+        _bg = Image.fromarray(cv2.cvtColor(state.get_canvas(), cv2.COLOR_BGR2RGB))
+        _stroke_hex = bgr_to_hex(state.color) if not state.eraser else "#ffffff"
+        _stroke_w   = 30 if state.eraser else state.brush_size * 2
+        mouse_result = st_canvas(
+            fill_color="rgba(0,0,0,0)",
+            stroke_width=_stroke_w,
+            stroke_color=_stroke_hex,
+            background_image=_bg,
+            background_color="#ffffff",
+            height=480, width=640,
+            drawing_mode="freedraw",
+            key="mouse_canvas",
+            update_streamlit=True,
+        )
+        # Merge completed strokes into state.canvas
+        if mouse_result.image_data is not None:
+            overlay = mouse_result.image_data          # RGBA numpy
+            alpha   = overlay[:, :, 3]
+            if alpha.max() > 0:
+                ov_rgb = overlay[:, :, :3].astype(np.uint8)
+                ov_bgr = cv2.cvtColor(ov_rgb, cv2.COLOR_RGB2BGR)
+                mask   = alpha > 10
+                with state.lock:
+                    state.canvas[mask] = ov_bgr[mask]
 
-    @st.fragment(run_every=0.5)
-    def live_canvas_preview():
-        _img = state.get_canvas()
-        _pil = Image.fromarray(cv2.cvtColor(_img, cv2.COLOR_BGR2RGB))
-        st.image(_pil, use_container_width=True)
+    elif mode == "📝 Text":
+        st.markdown("#### 📝 Canvas Preview")
 
-    live_canvas_preview()
+        @st.fragment(run_every=0.5)
+        def text_canvas_preview():
+            _img = state.get_canvas()
+            _pil = Image.fromarray(cv2.cvtColor(_img, cv2.COLOR_BGR2RGB))
+            st.image(_pil, use_container_width=True)
+
+        text_canvas_preview()
+
+    else:
+        st.markdown("#### 🖼️ Canvas Preview")
+
+        @st.fragment(run_every=0.5)
+        def live_canvas_preview():
+            _img = state.get_canvas()
+            _pil = Image.fromarray(cv2.cvtColor(_img, cv2.COLOR_BGR2RGB))
+            st.image(_pil, use_container_width=True)
+
+        live_canvas_preview()
 
 # Instructions
 st.markdown("---")
