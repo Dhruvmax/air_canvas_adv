@@ -8,27 +8,40 @@ from PIL import Image
 import io
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-# ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
+# ── Compatibility shim: streamlit-drawable-canvas uses a removed/altered internal API ──
 import streamlit.elements.image as _st_img_module
-if not hasattr(_st_img_module, 'image_to_url'):
+from collections import namedtuple
+
+# Retrieve the actual image_to_url function from the environment
+if hasattr(_st_img_module, 'image_to_url'):
+    _image_to_url = _st_img_module.image_to_url
+else:
     from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
-    from collections import namedtuple
-    
-    _LayoutConfig = namedtuple("LayoutConfig", ["width"])
-    
-    def compat_image_to_url(image, width, clamp, channels, output_format, image_id):
-        # Convert legacy width parameter to the LayoutConfig object expected by modern Streamlit
-        config = _LayoutConfig(width=width)
-        return _image_to_url(
-            image=image,
-            layout_config=config,
-            clamp=clamp,
-            channels=channels,
-            output_format=output_format,
-            image_id=image_id
-        )
-        
-    _st_img_module.image_to_url = compat_image_to_url
+
+_LayoutConfig = namedtuple("LayoutConfig", ["width"])
+
+def compat_image_to_url(*args, **kwargs):
+    # args[0] is the image. args[1] is either width (old) or layout_config (new).
+    # We detect if the second argument (or keyword argument) is a legacy width (int/str)
+    # and package it into a LayoutConfig object as expected by modern Streamlit.
+    args = list(args)
+    if len(args) > 1:
+        val = args[1]
+        if not hasattr(val, 'width'):
+            args[1] = _LayoutConfig(width=val)
+    elif 'layout_config' in kwargs:
+        val = kwargs['layout_config']
+        if not hasattr(val, 'width'):
+            kwargs['layout_config'] = _LayoutConfig(width=val)
+    elif 'width' in kwargs:
+        val = kwargs['width']
+        if not hasattr(val, 'width'):
+            kwargs['layout_config'] = _LayoutConfig(width=val)
+            del kwargs['width']
+            
+    return _image_to_url(*args, **kwargs)
+
+_st_img_module.image_to_url = compat_image_to_url
 
 from streamlit_drawable_canvas import st_canvas
 from streamlit_image_coordinates import streamlit_image_coordinates
