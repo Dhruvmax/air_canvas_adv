@@ -1,23 +1,35 @@
 import streamlit as st
-import cv2
-import numpy as np
-import mediapipe as mp
-# Explicitly import solutions to force any hidden C++ ImportError to surface
-import mediapipe.python.solutions as mp_solutions
-import av
-import threading
-from PIL import Image
-import io
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+import sys
+import traceback
 
-# ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
-import streamlit.elements.image as _st_img_module
-if not hasattr(_st_img_module, 'image_to_url'):
-    from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
-    _st_img_module.image_to_url = _image_to_url
+# Diagnostic check for imports
+try:
+    import cv2
+    import numpy as np
+    import mediapipe as mp
+    import mediapipe.python.solutions as mp_solutions
+    import av
+    import threading
+    from PIL import Image
+    import io
+    from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-from streamlit_drawable_canvas import st_canvas
-from streamlit_image_coordinates import streamlit_image_coordinates
+    # ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
+    import streamlit.elements.image as _st_img_module
+    if not hasattr(_st_img_module, 'image_to_url'):
+        from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
+        _st_img_module.image_to_url = _image_to_url
+
+    from streamlit_drawable_canvas import st_canvas
+    from streamlit_image_coordinates import streamlit_image_coordinates
+
+except Exception as e:
+    st.error("### 🔍 Environment Diagnostic Error")
+    st.write("The application failed to load system dependencies. Here are the details:")
+    st.info(f"**Python Version:** {sys.version}")
+    st.code(traceback.format_exc(), language="python")
+    st.warning("👉 If Python Version is `3.14.x`, please delete this app and redeploy it specifying Python `3.11` in **Advanced Settings**.")
+    st.stop()
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
 
