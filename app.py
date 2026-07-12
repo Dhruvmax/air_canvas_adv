@@ -230,9 +230,6 @@ col_cam, col_canvas = st.columns([3, 2])
 
 with col_cam:
     st.markdown("#### 📷 Live Camera")
-    # Pre-initialize key to avoid KeyError on rerun (streamlit-webrtc bug)
-    if "air-canvas" not in st.session_state:
-        st.session_state["air-canvas"] = None
     webrtc_ctx = webrtc_streamer(
         key="air-canvas",
         mode=WebRtcMode.SENDRECV,
