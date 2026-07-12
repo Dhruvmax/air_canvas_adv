@@ -249,6 +249,8 @@ with st.sidebar:
     st.markdown("---")
     if st.button("🗑️ Clear"):
         state.clear()
+        # Increment key so st_canvas widget fully reinitializes (browser-side reset)
+        st.session_state["canvas_version"] = st.session_state.get("canvas_version", 0) + 1
 
     # Build download bytes once and cache to avoid server disconnect on click
     _canvas_snap = state.get_canvas()
@@ -285,6 +287,7 @@ with col_cam:
 with col_canvas:
     if mode == "🖱️ Mouse":
         st.markdown("#### 🖱️ Mouse Drawing")
+        _cv = st.session_state.get("canvas_version", 0)
         _bg = Image.fromarray(cv2.cvtColor(state.get_canvas(), cv2.COLOR_BGR2RGB))
         _stroke_hex = bgr_to_hex(state.color) if not state.eraser else "#ffffff"
         _stroke_w   = 30 if state.eraser else state.brush_size * 2
@@ -296,19 +299,17 @@ with col_canvas:
             background_color="#ffffff",
             height=480, width=640,
             drawing_mode="freedraw",
-            key="mouse_canvas",
+            key=f"mouse_canvas_{_cv}",  # key changes on clear → fresh widget
             update_streamlit=True,
         )
-        # Merge completed strokes into state.canvas
+        # image_data with background_image has alpha=255 everywhere.
+        # Safe fix: copy the full composited image directly into state.canvas.
         if mouse_result.image_data is not None:
-            overlay = mouse_result.image_data          # RGBA numpy
-            alpha   = overlay[:, :, 3]
-            if alpha.max() > 0:
-                ov_rgb = overlay[:, :, :3].astype(np.uint8)
-                ov_bgr = cv2.cvtColor(ov_rgb, cv2.COLOR_RGB2BGR)
-                mask   = alpha > 10
-                with state.lock:
-                    state.canvas[mask] = ov_bgr[mask]
+            raw_rgb = mouse_result.image_data[:, :, :3].astype(np.uint8)
+            raw_bgr = cv2.cvtColor(raw_rgb, cv2.COLOR_RGB2BGR)
+            raw_bgr = cv2.resize(raw_bgr, (640, 480))  # ensure correct size
+            with state.lock:
+                state.canvas = raw_bgr
 
     elif mode == "📝 Text":
         st.markdown("#### 📝 Click to Place Text")
