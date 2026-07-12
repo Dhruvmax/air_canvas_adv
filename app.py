@@ -7,6 +7,13 @@ import threading
 from PIL import Image
 import io
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+
+# ── Compatibility shim: streamlit-drawable-canvas uses a removed internal API ──
+import streamlit.elements.image as _st_img_module
+if not hasattr(_st_img_module, 'image_to_url'):
+    from streamlit.elements.lib.image_utils import image_to_url as _image_to_url
+    _st_img_module.image_to_url = _image_to_url
+
 from streamlit_drawable_canvas import st_canvas
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
