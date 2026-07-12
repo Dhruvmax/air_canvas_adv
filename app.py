@@ -15,6 +15,7 @@ if not hasattr(_st_img_module, 'image_to_url'):
     _st_img_module.image_to_url = _image_to_url
 
 from streamlit_drawable_canvas import st_canvas
+from streamlit_image_coordinates import streamlit_image_coordinates
 
 st.set_page_config(page_title="Air Canvas Pro", page_icon="🎨", layout="wide")
 
@@ -221,20 +222,29 @@ with st.sidebar:
     if mode == "📝 Text":
         st.markdown("---")
         st.markdown("### 📝 Text Options")
-        txt_input   = st.text_input("Text to add", value="Hello!", key="txt_input")
-        txt_x       = st.slider("X position", 0, 620, 50,  key="txt_x")
-        txt_y       = st.slider("Y position", 20, 470, 240, key="txt_y")
-        txt_size    = st.slider("Font size",  0.5, 3.0, 1.0, step=0.1, key="txt_size")
-        txt_thick   = st.slider("Thickness", 1, 6, 2, key="txt_thick")
-        if st.button("✍️ Add Text to Canvas", use_container_width=True):
-            with state.lock:
-                cv2.putText(
-                    state.canvas, txt_input,
-                    (txt_x, txt_y),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    txt_size, state.color, txt_thick, cv2.LINE_AA
-                )
-            st.success(f"Added: '{txt_input}'")
+        st.markdown('<div class="info-box">👆 Click anywhere on the canvas to place your text there.</div>',
+                    unsafe_allow_html=True)
+        txt_input = st.text_input("Text to write", value="Hello!", key="txt_input")
+        txt_size  = st.slider("Font size",  0.5, 3.0, 1.0, step=0.1, key="txt_size")
+        txt_thick = st.slider("Thickness",  1,   6,   2,              key="txt_thick")
+        # Show last click position
+        tx = st.session_state.get("text_click_x", None)
+        ty = st.session_state.get("text_click_y", None)
+        if tx is not None:
+            st.markdown(f'📍 Position: **({tx}, {ty})** — click canvas to change')
+            if st.button("✍️ Add Text to Canvas", use_container_width=True):
+                with state.lock:
+                    cv2.putText(
+                        state.canvas, txt_input,
+                        (tx, ty),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        txt_size, state.color, txt_thick, cv2.LINE_AA
+                    )
+                st.session_state["text_click_x"] = None
+                st.session_state["text_click_y"] = None
+                st.success(f"Added: '{txt_input}'")
+        else:
+            st.info("👆 Click on the canvas to choose where to place text.")
 
     st.markdown("---")
     if st.button("🗑️ Clear"):
@@ -301,15 +311,29 @@ with col_canvas:
                     state.canvas[mask] = ov_bgr[mask]
 
     elif mode == "📝 Text":
-        st.markdown("#### 📝 Canvas Preview")
-
-        @st.fragment(run_every=0.5)
-        def text_canvas_preview():
-            _img = state.get_canvas()
-            _pil = Image.fromarray(cv2.cvtColor(_img, cv2.COLOR_BGR2RGB))
-            st.image(_pil, use_container_width=True)
-
-        text_canvas_preview()
+        st.markdown("#### 📝 Click to Place Text")
+        # Build a preview image with a crosshair at the clicked position
+        _raw = state.get_canvas()
+        _preview = _raw.copy()
+        tx = st.session_state.get("text_click_x", None)
+        ty = st.session_state.get("text_click_y", None)
+        if tx is not None and ty is not None:
+            # Draw crosshair marker at click position
+            cv2.drawMarker(_preview, (tx, ty), (255, 0, 128),
+                           cv2.MARKER_CROSS, 30, 2, cv2.LINE_AA)
+            # Show text preview
+            _txt = st.session_state.get("txt_input", "Hello!")
+            _sz  = st.session_state.get("txt_size",  1.0)
+            _thk = st.session_state.get("txt_thick", 2)
+            cv2.putText(_preview, _txt, (tx, ty),
+                        cv2.FONT_HERSHEY_SIMPLEX, _sz,
+                        (180, 0, 200), _thk, cv2.LINE_AA)
+        _pil_preview = Image.fromarray(cv2.cvtColor(_preview, cv2.COLOR_BGR2RGB))
+        coords = streamlit_image_coordinates(_pil_preview, key="text_canvas_click")
+        if coords:
+            st.session_state["text_click_x"] = coords["x"]
+            st.session_state["text_click_y"] = coords["y"]
+            st.rerun()
 
     else:
         st.markdown("#### 🖼️ Canvas Preview")
